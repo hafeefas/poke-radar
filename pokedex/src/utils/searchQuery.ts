@@ -37,9 +37,11 @@ export const fetchAllPokemon = async (): Promise<Pokemon[]> => {
 
 export const searchPokemon = (query: string): Pokemon[] => {
   return allPokemon.filter(pokemon =>
-    pokemon.name.toLowerCase().startsWith(query.toLowerCase())
+    pokemon.name.toLowerCase().startsWith(query.toLowerCase()) ||
+    pokemon.types.some(type => type.toLowerCase().startsWith(query.toLowerCase()))
   );
 };
+
 
 export const getPokemonBatch = (start: number, batchSize: number): Pokemon[] => {
   return allPokemon.slice(start, start + batchSize);
