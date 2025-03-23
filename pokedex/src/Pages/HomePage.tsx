@@ -1,184 +1,277 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import PokemonCard from '../Components/PokemonCard';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { fetchAllPokemon, searchPokemon, getPokemonBatch } from '../utils/searchQuery';
+import styled from 'styled-components';
 
-interface Pokemon {
-  name: string;
-  types: string[];
-  image: string;
-}
+const HomeContainer = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(135deg,rgb(30, 175, 119) 0%,rgb(47, 63, 109) 100%);
+  position: relative;
+  overflow: hidden;
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png') no-repeat center right;
+    background-size: contain;
+    opacity: 0.1;
+    z-index: 1;
+  }
 
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 0%, #1e40af 70%);
+    z-index: 2;
+  }
+`;
 
-const Container = styled.main`
-  padding: 20px;
-  margin-bottom: 20px;
+const Content = styled.div`
+  position: relative;
+  z-index: 3;
+`;
+
+const HeroSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6rem 2rem;
+  gap: 4rem;
+
+  @media (max-width: 968px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 4rem 2rem;
+  }
+`;
+
+const ContentSection = styled.div`
+  flex: 1;
 `;
 
 const Title = styled.h1`
-  text-align: center;
-  margin: 30px 0 20px 0;
-  color: #ffcb05;
-  text-shadow: 2px 2px #3b4cca;
-`;
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: #ffd700;
+  text-shadow: 3px 3px 0px #2563eb;
+  line-height: 1.2;
+  font-family: 'Pokemon Solid', sans-serif;
+  letter-spacing: 2px;
 
-const Grid = styled.section`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  justify-items: center;
-
-  @media (max-width: 1280px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media (max-width: 900px) {
-    grid-template-columns: repeat(2, 1fr);
-    justify-items: center;
-  }
-
-  @media (max-width: 500px) {
-    grid-template-columns: repeat(1, 1fr);
-    justify-items: center;
+  @media (max-width: 768px) {
+    font-size: 3rem;
   }
 `;
 
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 10px;
-  margin: 50px 0;
-  font-size: 1.2em;
-  border: 2px solid #3b4cca;
-  border-radius: 5px;
+const Description = styled.p`
+  font-size: 1.25rem;
+  line-height: 1.8;
+  margin-bottom: 2.5rem;
+  color: #e2e8f0;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
 `;
 
-const LoadMoreButton = styled.button`
-  display: block;
-  margin: 20px auto;
-  padding: 10px 20px;
-  font-size: 1.2em;
-  background-color: #3b4cca;
-  color: white;
-  border: none;
-  border-radius: 5px;
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1.5rem;
+
+  @media (max-width: 968px) {
+    justify-content: center;
+  }
+`;
+
+const Button = styled.button`
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 50px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  
+  &.primary {
+    background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+    color: #1e40af;
+    border: none;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+  }
+  
+  &.secondary {
+    background: transparent;
+    border: 2px solid #ffd700;
+    color: #ffd700;
+    
+    &:hover {
+      background: rgba(255, 215, 0, 0.1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+    }
+  }
+`;
 
+const FeatureSection = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 6rem;
+`;
+
+const FeatureGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FeatureCard = styled.div`
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  
   &:hover {
-    background-color: #2a3a99;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
 
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+  h3 {
+    color: #ffd700;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  }
+  
+  p {
+    color: #e2e8f0;
+    line-height: 1.6;
+    font-size: 1.1rem;
+  }
+`;
+
+const StatsSection = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 4rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const StatsGrid = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatCard = styled.div`
+  h4 {
+    font-size: 3.5rem;
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+    font-family: 'Pokemon Solid', sans-serif;
+  }
+
+  p {
+    color: #e2e8f0;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 `;
 
 const HomePage: React.FC = () => {
-  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [currentBatch, setCurrentBatch] = useState(0);
-  const batchSize = 20;
   const navigate = useNavigate();
 
-  const loadMorePokemons = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-
-    if (searchQuery) {
-      const searchResults = searchPokemon(searchQuery);
-      setPokemons((prevPokemons) => [
-        ...prevPokemons,
-        ...searchResults.slice(prevPokemons.length, prevPokemons.length + batchSize),
-      ]);
-    } else {
-      const startIndex = currentBatch * batchSize + 1;
-      const endIndex = startIndex + batchSize - 1;
-      const newPokemonList: Pokemon[] = [];
-
-      for (let i = startIndex; i <= endIndex; i++) {
-        try {
-          const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${i}`);
-          const pokemon: Pokemon = {
-            name: res.data.name,
-            types: res.data.types.map((typeInfo: any) => typeInfo.type.name),
-            image: res.data.sprites.front_default,
-          };
-          newPokemonList.push(pokemon);
-        } catch (error) {
-          console.error(`Error fetching Pokémon with ID: ${i}`, error);
-        }
-      }
-
-      setPokemons((prevPokemons) => [...prevPokemons, ...newPokemonList]);
-      setCurrentBatch((prevBatch) => prevBatch + 1);
-    }
-
-    setLoading(false);
-  }, [searchQuery, loading, currentBatch]);
-
-  useEffect(() => {
-    const initializePokemon = async () => {
-      setLoading(true);
-      await fetchAllPokemon();
-      const initialBatch = getPokemonBatch(0, batchSize);
-      setPokemons(initialBatch);
-      setCurrentBatch(1);
-      setLoading(false);
-    };
-
-    initializePokemon();
-  }, []);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
-
-    if (query) {
-      const searchResults = searchPokemon(query);
-      setPokemons(searchResults);
-    } else {
-      const initialBatch = getPokemonBatch(0, batchSize);
-      setPokemons(initialBatch);
-      setCurrentBatch(1);
-    }
-  };
-
-  const handleClick = (pokemonName: string, pokemon: Pokemon) => {
-    navigate(`/${pokemonName}`, { state: { pokemon } });
-  };
-
   return (
-    <Container>
-      <Title>Pokémon Pokédex</Title>
-      <SearchInput
-        type="text"
-        placeholder="Search Pokémon..."
-        value={searchQuery}
-        onChange={handleSearchChange}
-      />
-      <Grid>
-        {pokemons.map((pokemon, index) => (
-          <motion.div
-            key={`${pokemon.name}-${index}`}
-            layout
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={() => handleClick(pokemon.name, pokemon)}
-          >
-            <PokemonCard pokemon={pokemon} />
-          </motion.div>
-        ))}
-      </Grid>
-      <LoadMoreButton onClick={loadMorePokemons} disabled={loading}>
-        {loading ? 'Loading...' : 'Load More'}
-      </LoadMoreButton>
-    </Container>
+    <HomeContainer>
+      <Content>
+        <HeroSection>
+          <ContentSection>
+            <Title>Your Pokémon Journey Begins</Title>
+            <Description>
+              Embark on an epic adventure through the world of Pokémon. Access comprehensive
+              information about every species, master type matchups, and become the ultimate
+              Pokémon trainer!
+            </Description>
+            <ButtonGroup>
+              <Button className="primary" onClick={() => navigate('/pokedex')}>
+                Open Pokédex
+              </Button>
+              <Button className="secondary" onClick={() => navigate('/pokedex')}>
+                Learn More
+              </Button>
+            </ButtonGroup>
+          </ContentSection>
+        </HeroSection>
+
+        <FeatureSection>
+          <FeatureGrid>
+            <FeatureCard>
+              <h3>⚡ Complete Pokédex</h3>
+              <p>Detailed information on all Pokémon species, from Bulbasaur to the latest discoveries</p>
+            </FeatureCard>
+            <FeatureCard>
+              <h3>🔥 Battle Stats</h3>
+              <p>Comprehensive battle statistics, abilities, and move sets for competitive training</p>
+            </FeatureCard>
+            <FeatureCard>
+              <h3>✨ Evolution Chains</h3>
+              <p>Track evolution paths and learn about special evolution requirements</p>
+            </FeatureCard>
+            <FeatureCard>
+              <h3>🎯 Type Calculator</h3>
+              <p>Master type advantages and build the perfect team composition</p>
+            </FeatureCard>
+          </FeatureGrid>
+        </FeatureSection>
+
+        <StatsSection>
+          <StatsGrid>
+            <StatCard>
+              <h4>900+</h4>
+              <p>Pokémon Species</p>
+            </StatCard>
+            <StatCard>
+              <h4>18</h4>
+              <p>Type Categories</p>
+            </StatCard>
+            <StatCard>
+              <h4>4000+</h4>
+              <p>Unique Moves</p>
+            </StatCard>
+          </StatsGrid>
+        </StatsSection>
+      </Content>
+    </HomeContainer>
   );
 };
 
